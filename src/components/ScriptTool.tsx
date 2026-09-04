@@ -325,12 +325,22 @@ export function ScriptTool({ email }: Props) {
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-primary/30 bg-primary/5 sm:h-20 sm:w-20">
           <Sparkles className="h-7 w-7 text-primary sm:h-8 sm:w-8" />
         </div>
-        <h3 className="font-display text-lg text-foreground sm:text-xl">Pronto para converter?</h3>
-        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          Preencha o tema, escolha o <strong className="text-primary">intuito</strong> do vídeo e a IA
-          vai gerar <strong className="text-primary">3 ganchos</strong> para você escolher o melhor.
-          Depois, o roteiro completo é escrito em copy conversiva alinhada ao seu objetivo.
+        <h3 className="font-display text-lg text-foreground sm:text-xl">Crie seu primeiro roteiro viral</h3>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+          Escolha o <strong className="text-primary">intuito</strong> do vídeo, defina o tema e a IA
+          gera <strong className="text-primary">3 ganchos</strong> para você escolher. Em seguida,
+          montamos o roteiro completo em copy conversiva.
         </p>
+        <button
+          onClick={() => {
+            setTheme("O segredo por trás do caso que ninguém conseguiu explicar");
+            document.getElementById("theme")?.focus();
+          }}
+          className="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+        >
+          <Wand2 className="h-3.5 w-3.5 text-primary" />
+          Usar tema de exemplo
+        </button>
       </div>
     );
   };
