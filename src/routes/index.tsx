@@ -50,7 +50,7 @@ const FEATURES = [
 function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-border/40 bg-gradient-to-b from-background to-card/20 px-4 py-12 sm:py-16">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,oklch(0.58_0.22_25/0.12),transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,oklch(0.62_0.18_285/0.12),transparent_60%)]" />
       <div className="relative mx-auto max-w-4xl text-center">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-medium text-primary shadow-[0_0_20px_-8px_var(--primary)]">
           <Zap className="h-3.5 w-3.5" />
