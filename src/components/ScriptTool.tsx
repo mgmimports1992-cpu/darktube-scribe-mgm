@@ -147,24 +147,40 @@ export function ScriptTool({ email }: Props) {
 
   async function handleSave() {
     if (!script) return;
-    const { data, error } = await supabase
-      .from("scripts")
-      .insert({
+    try {
+      const { data, error } = await supabase
+        .from("scripts")
+        .insert({
+          title: theme || "Roteiro sem título",
+          content: script,
+          niche,
+          tone,
+          duration,
+          intent,
+          email,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      toast.success("Roteiro salvo no seu preset");
+      if (data) setHistory((prev) => [data as SavedScript, ...prev]);
+    } catch {
+      // Backend indisponível: salva localmente
+      const local: SavedScript = {
+        id: crypto.randomUUID(),
         title: theme || "Roteiro sem título",
         content: script,
         niche,
         tone,
         duration,
-        intent,
-        email,
-      })
-      .select()
-      .single();
-    if (error) {
-      toast.error("Erro ao salvar");
-    } else {
-      toast.success("Roteiro salvo no seu preset");
-      if (data) setHistory((prev) => [data as SavedScript, ...prev]);
+        created_at: new Date().toISOString(),
+      };
+      setHistory((prev) => {
+        const next = [local, ...prev];
+        writeLocalHistory(next);
+        return next;
+      });
+      toast.success("Roteiro salvo no preset local deste navegador");
     }
   }
 
@@ -175,17 +191,26 @@ export function ScriptTool({ email }: Props) {
   }
 
   async function handleDelete(id: string) {
-    const { error } = await supabase.from("scripts").delete().eq("id", id);
-    if (error) {
-      toast.error("Erro ao excluir");
-    } else {
-      setHistory((prev) => prev.filter((s) => s.id !== id));
+    const removeFromState = () => {
+      setHistory((prev) => {
+        const next = prev.filter((s) => s.id !== id);
+        writeLocalHistory(next);
+        return next;
+      });
       if (selectedId === id) {
         setSelectedId(null);
         setScript("");
         setStep("idle");
       }
       toast.success("Excluído");
+    };
+    try {
+      const { error } = await supabase.from("scripts").delete().eq("id", id);
+      if (error) throw error;
+      removeFromState();
+    } catch {
+      // Backend indisponível: remove do preset local
+      removeFromState();
     }
   }
 
