@@ -60,15 +60,40 @@ export function ScriptTool({ email }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
 
+  const storageKey = `darkscript:preset:${email || "anon"}`;
+
+  function readLocalHistory(): SavedScript[] {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? (JSON.parse(raw) as SavedScript[]) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeLocalHistory(items: SavedScript[]) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(items));
+    } catch {
+      // storage cheio/indisponível — ignora silenciosamente
+    }
+  }
+
   async function loadHistory() {
     setHistoryLoading(true);
-    const { data, error } = await supabase
-      .from("scripts")
-      .select("*")
-      .eq("email", email)
-      .order("created_at", { ascending: false });
-    if (error) toast.error("Erro ao carregar histórico");
-    else setHistory((data ?? []) as SavedScript[]);
+    try {
+      const { data, error } = await supabase
+        .from("scripts")
+        .select("*")
+        .eq("email", email)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setHistory((data ?? []) as SavedScript[]);
+    } catch {
+      // Backend indisponível: usa o preset salvo localmente
+      setHistory(readLocalHistory());
+    }
     setHistoryLoading(false);
   }
 
@@ -122,24 +147,40 @@ export function ScriptTool({ email }: Props) {
 
   async function handleSave() {
     if (!script) return;
-    const { data, error } = await supabase
-      .from("scripts")
-      .insert({
+    try {
+      const { data, error } = await supabase
+        .from("scripts")
+        .insert({
+          title: theme || "Roteiro sem título",
+          content: script,
+          niche,
+          tone,
+          duration,
+          intent,
+          email,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      toast.success("Roteiro salvo no seu preset");
+      if (data) setHistory((prev) => [data as SavedScript, ...prev]);
+    } catch {
+      // Backend indisponível: salva localmente
+      const local: SavedScript = {
+        id: crypto.randomUUID(),
         title: theme || "Roteiro sem título",
         content: script,
         niche,
         tone,
         duration,
-        intent,
-        email,
-      })
-      .select()
-      .single();
-    if (error) {
-      toast.error("Erro ao salvar");
-    } else {
-      toast.success("Roteiro salvo no seu preset");
-      if (data) setHistory((prev) => [data as SavedScript, ...prev]);
+        created_at: new Date().toISOString(),
+      };
+      setHistory((prev) => {
+        const next = [local, ...prev];
+        writeLocalHistory(next);
+        return next;
+      });
+      toast.success("Roteiro salvo no preset local deste navegador");
     }
   }
 
@@ -150,17 +191,26 @@ export function ScriptTool({ email }: Props) {
   }
 
   async function handleDelete(id: string) {
-    const { error } = await supabase.from("scripts").delete().eq("id", id);
-    if (error) {
-      toast.error("Erro ao excluir");
-    } else {
-      setHistory((prev) => prev.filter((s) => s.id !== id));
+    const removeFromState = () => {
+      setHistory((prev) => {
+        const next = prev.filter((s) => s.id !== id);
+        writeLocalHistory(next);
+        return next;
+      });
       if (selectedId === id) {
         setSelectedId(null);
         setScript("");
         setStep("idle");
       }
       toast.success("Excluído");
+    };
+    try {
+      const { error } = await supabase.from("scripts").delete().eq("id", id);
+      if (error) throw error;
+      removeFromState();
+    } catch {
+      // Backend indisponível: remove do preset local
+      removeFromState();
     }
   }
 
