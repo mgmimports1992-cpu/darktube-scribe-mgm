@@ -60,15 +60,40 @@ export function ScriptTool({ email }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
 
+  const storageKey = `darkscript:preset:${email || "anon"}`;
+
+  function readLocalHistory(): SavedScript[] {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? (JSON.parse(raw) as SavedScript[]) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeLocalHistory(items: SavedScript[]) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(items));
+    } catch {
+      // storage cheio/indisponível — ignora silenciosamente
+    }
+  }
+
   async function loadHistory() {
     setHistoryLoading(true);
-    const { data, error } = await supabase
-      .from("scripts")
-      .select("*")
-      .eq("email", email)
-      .order("created_at", { ascending: false });
-    if (error) toast.error("Erro ao carregar histórico");
-    else setHistory((data ?? []) as SavedScript[]);
+    try {
+      const { data, error } = await supabase
+        .from("scripts")
+        .select("*")
+        .eq("email", email)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setHistory((data ?? []) as SavedScript[]);
+    } catch {
+      // Backend indisponível: usa o preset salvo localmente
+      setHistory(readLocalHistory());
+    }
     setHistoryLoading(false);
   }
 
